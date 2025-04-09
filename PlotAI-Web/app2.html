@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>PlotAI Plant Disease Detection</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- TensorFlow.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <style>
+    /* Fullscreen video styling */
+    #video {
+      object-fit: cover;
+    }
+    /* Vertical zoom slider styling */
+    #zoom-container {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    #zoom-slider {
+      transform: rotate(-90deg);
+      width: 8rem;
+    }
+    /* Modal overlay styling */
+    .modal-overlay {
+      background-color: rgba(0, 0, 0, 0.6);
+    }
+    /* Debug panel styling (optional) */
+    #debug {
+      font-size: 14px;
+      color: #555;
+      white-space: pre-wrap;
+      background: #f7f7f7;
+      padding: 10px;
+      border: 1px solid #ddd;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    /* Hide the preview image by default */
+    #uploaded-image {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-black relative min-h-screen">
+  <!-- Video element for live camera feed -->
+  <video id="video" class="absolute inset-0 w-full h-full" autoplay playsinline></video>
+
+  <!-- UI Overlay -->
+  <div class="absolute inset-0 flex flex-col justify-between">
+    <!-- Top Bar -->
+    <div class="relative p-4 flex items-center justify-between">
+      <div class="w-8"></div>
+      <div class="absolute inset-x-0 flex justify-center">
+        <span class="text-white text-xl font-bold">PlotAI</span>
+      </div>
+      <button id="flash" class="text-white focus:outline-none">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Center Focus Box -->
+    <div class="flex justify-center items-center flex-grow">
+      <div class="relative w-40 h-40">
+        <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white"></div>
+        <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white"></div>
+        <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white"></div>
+        <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white"></div>
+      </div>
+    </div>
+    
+    <!-- Bottom Bar -->
+    <div class="p-4">
+      <div class="flex justify-center items-center">
+        <!-- Shutter Button -->
+        <button id="shutter" class="bg-white rounded-full p-6 focus:outline-none shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+        <!-- Upload Image Button -->
+        <button id="upload" class="ml-8 flex flex-col items-center text-white focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h3.28a2 2 0 011.77 1.11l1.2 2.4a2 2 0 001.77 1.11H18a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-2 2m0 0l-2-2m2 2V9" />
+          </svg>
+          <span class="text-sm">Upload</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Vertical Zoom Slider -->
+  <div id="zoom-container">
+    <input id="zoom-slider" type="range" min="1" max="3" step="0.1" value="1" class="accent-blue-500" />
+  </div>
+  
+  <!-- Hidden preview image element for model input -->
+  <img id="uploaded-image" src="" alt="Preview Image" />
+  
+  <!-- Modal Popup for Diagnosis -->
+  <div id="modal" class="fixed inset-0 flex items-center justify-center hidden modal-overlay">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-md">
+      <h2 class="text-xl font-bold mb-4">Plant Disease Diagnosis</h2>
+      <!-- Diagnosis and predictions container -->
+      <div id="diagnosis" class="mb-4"></div>
+      <p id="inference-time" class="mb-4 text-sm text-gray-700"></p>
+      <button id="close-modal" class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 focus:outline-none">
+        Close
+      </button>
+    </div>
+  </div>
+  
+  <!-- Hidden file input for upload functionality -->
+  <input type="file" id="hidden-upload" accept="image/*" class="hidden" />
+  
+  <!-- Debug Panel -->
+  <div id="debug" class="mt-4"></div>
+  
+  <script>
+    // Global variables
+    let model;
+    let videoTrack;
+    const debugDiv = document.getElementById('debug');
+    
+    function logDebug(message) {
+      console.log(message);
+      debugDiv.innerText += message + "\n";
+    }
+    
+    // Load the TensorFlow.js model.
+    logDebug("Starting model load from 'model/model.json' ...");
+    tf.loadGraphModel('model/model.json')
+      .then(loadedModel => {
+        model = loadedModel;
+        logDebug("Model loaded successfully.");
+      })
+      .catch(err => {
+        console.error("Failed to load model:", err);
+        logDebug("Failed to load model: " + err);
+      });
+    
+    // Get the video element.
+    const video = document.getElementById("video");
+    
+    // Setup camera access.
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(stream => {
+          video.srcObject = stream;
+          video.play();
+          videoTrack = stream.getVideoTracks()[0];
+          // Setup zoom slider if supported.
+          const zoomSlider = document.getElementById('zoom-slider');
+          const capabilities = videoTrack.getCapabilities();
+          if (capabilities.zoom) {
+            zoomSlider.min = capabilities.zoom.min;
+            zoomSlider.max = capabilities.zoom.max;
+            zoomSlider.step = capabilities.zoom.step || 0.1;
+            zoomSlider.value = videoTrack.getSettings().zoom || capabilities.zoom.min;
+            zoomSlider.disabled = false;
+            zoomSlider.addEventListener('input', async (e) => {
+              const zoomLevel = parseFloat(e.target.value);
+              try {
+                await videoTrack.applyConstraints({ advanced: [{ zoom: zoomLevel }] });
+                logDebug("Applied zoom: " + zoomLevel);
+              } catch (error) {
+                console.error("Zoom not supported:", error);
+                logDebug("Zoom not supported: " + error);
+              }
+            });
+          } else {
+            zoomSlider.disabled = true;
+            logDebug("Zoom capability not supported.");
+          }
+        })
+        .catch(err => {
+          console.error("Error accessing the camera:", err);
+          alert("Unable to access the camera. Please check your permissions.");
+          logDebug("Error accessing the camera: " + err);
+        });
+    } else {
+      alert("Your browser does not support accessing the camera.");
+      logDebug("Camera not supported.");
+    }
+    
+    // Flash functionality.
+    document.getElementById('flash').addEventListener('click', async () => {
+      if (!videoTrack) {
+        alert("Camera not initialized.");
+        return;
+      }
+      try {
+        const capabilities = videoTrack.getCapabilities();
+        if (capabilities.torch) {
+          const settings = videoTrack.getSettings();
+          const currentTorch = settings.torch || false;
+          await videoTrack.applyConstraints({ advanced: [{ torch: !currentTorch }] });
+          logDebug("Flash toggled to: " + !currentTorch);
+        } else {
+          alert("Flash is not supported on this device.");
+          logDebug("Flash not supported.");
+        }
+      } catch (err) {
+        console.error("Error toggling flash:", err);
+        logDebug("Error toggling flash: " + err);
+      }
+    });
+    
+    // Define the class mapping for 120 classes.
+    const classMapping = {
+      0: "corn_blight",
+      1: "orange_haunglongbing",
+      2: "tea_anthracnose",
+      3: "coffee_miner",
+      4: "tomato_late_blight",
+      5: "sugarcane_diseased",
+      6: "tea_red_leaf_spot",
+      7: "strawberry_healthy",
+      8: "tea_algal_leaf",
+      9: "apple_scab",
+      10: "tomato_bacterial_spot",
+      11: "tomato_mosaic_virus",
+      12: "hops_powdery",
+      13: "bean_healthy",
+      14: "rice_neck_blast",
+      15: "rice_leaf_blast",
+      16: "corn_gray_leaf_spot",
+      17: "tea_bird_eye_spot",
+      18: "cauliflower_bacterial_spot_rot",
+      19: "corn_healthy",
+      20: "jamun_diseased",
+      21: "pepper_healthy",
+      22: "tomato_yellow_leaf_curl_virus",
+      23: "basil_healthy",
+      24: "sugarcane_healthy",
+      25: "squash_powdery_mildew",
+      26: "cauliflower_black_rot",
+      27: "mango_healthy",
+      28: "cherry_powdery_mildew",
+      29: "pongamia_pinnata_healthy",
+      30: "grape_black_rot",
+      31: "apple_frog_eye_leaf_spot",
+      32: "cotton_diseased",
+      33: "apple_powdery_mildew",
+      34: "apple_cedar_apple_rust",
+      35: "apple_black_rot",
+      36: "mango_diseased",
+      37: "tea_healthy",
+      38: "tea_brown_blight",
+      39: "citrus_black_spot",
+      40: "citrus_canker",
+      41: "hops_downy",
+      42: "banana_pestalotiopsis",
+      43: "raspberry_healthy",
+      44: "wheat_stripe_rust",
+      45: "grape_black_measles",
+      46: "potato_healthy",
+      47: "rice_healthy",
+      48: "banana_cordana",
+      49: "blueberry_healthy",
+      50: "wheat_healthy",
+      51: "alstonia_scholaris_diseased",
+      52: "pomegranate_diseased",
+      53: "tomato_septoria_leaf_spot",
+      54: "corn_northern_leaf_blight",
+      55: "pomegranate_healthy",
+      56: "arjun_healthy",
+      57: "cauliflower_healthy",
+      58: "strawberry_leaf_scorch",
+      59: "peach_healthy",
+      60: "peach_bacterial_spot",
+      61: "tomato_spider_mites",
+      62: "tomato_healthy",
+      63: "jatropha_diseased",
+      64: "apple_healthy",
+      65: "lemon_healthy",
+      66: "hops_healthy",
+      67: "tomato_leaf_mold",
+      68: "okra_diseased",
+      69: "sunflower_downy_mildew",
+      70: "cauliflower_downy_mildew",
+      71: "wheat_yellow_rust",
+      72: "bean_angular_leaf_spot",
+      73: "citrus_greening",
+      74: "bael_diseased",
+      75: "sunflower_fresh_leaf",
+      76: "tea_gray_light",
+      77: "sunflower_gray_mold",
+      78: "cucumber_diseased",
+      79: "apple_complex",
+      80: "coffee_rust",
+      81: "okra_healthy",
+      82: "pongamia_pinnata_diseased",
+      83: "cotton_healthy",
+      84: "apple_rust",
+      85: "soyabean_healthy",
+      86: "jamun_healthy",
+      87: "corn_common_rust",
+      88: "wheat_diseased",
+      89: "cherry_healthy",
+      90: "pepper_bacterial_spot",
+      91: "banana_healthy",
+      92: "chinar_diseased",
+      93: "wheat_septoria",
+      94: "arjun_diseased",
+      95: "cucumber_healthy",
+      96: "grape_leaf_blight",
+      97: "corn_diseased",
+      98: "rice_brown_spot",
+      99: "citrus_healthy",
+      100: "sunflower_leaf_scars",
+      101: "potato_late_blight",
+      102: "coffee_healthy",
+      103: "strawberry_calciumdeficiency",
+      104: "jatropha_healthy",
+      105: "chinar_healthy",
+      106: "alstonia_scholaris_healthy",
+      107: "grape_healthy",
+      108: "banana_sigatoka",
+      109: "gauva_diseased",
+      110: "gauva_healthy",
+      111: "bean_rust",
+      112: "coffee_red_spider_mite",
+      113: "tomato_target_spot",
+      114: "tomato_early_blight",
+      115: "rice_hispa",
+      116: "wheat_brown_rust",
+      117: "tea_white_spot",
+      118: "lemon_diseased",
+      119: "potato_early_blight"
+    };
+    
+    // Inference function: preprocess image and run model; returns an object with top-N predictions, inference time, and warning.
+    async function runInference(imageElement) {
+      if (!model) {
+        alert("Model is not loaded yet.");
+        logDebug("Inference attempted but model not loaded.");
+        return null;
+      }
+      logDebug("Starting prediction on image with dimensions: " + imageElement.naturalWidth + "x" + imageElement.naturalHeight);
+      
+      // Preprocess image.
+      let tensor = tf.browser.fromPixels(imageElement)
+                      .resizeNearestNeighbor([224, 224])
+                      .toFloat();
+      logDebug("Tensor shape after resize: " + tensor.shape);
+      tensor = tensor.div(tf.scalar(255));
+      const mean = tf.tensor1d([0.416, 0.468, 0.355]);
+      const std = tf.tensor1d([0.210, 0.206, 0.213]);
+      tensor = tensor.sub(mean).div(std);
+      tensor = tensor.expandDims(0);
+      logDebug("Tensor shape after normalization and batch dimension: " + tensor.shape);
+      // Transpose from NHWC to NCHW.
+      tensor = tensor.transpose([0, 3, 1, 2]);
+      logDebug("Tensor shape after transposing to NCHW: " + tensor.shape);
+      
+      // Measure inference time.
+      const startTime = performance.now();
+      try {
+        const output = await model.executeAsync(tensor);
+        const endTime = performance.now();
+        const inferenceTime = (endTime - startTime).toFixed(2);
+        logDebug("Inference time: " + inferenceTime + " ms");
+        logDebug("Prediction tensor shape: " + output.shape);
+        
+        // Assume model outputs logits. Apply softmax to get probabilities.
+        const logits = output.dataSync();
+        logDebug("Raw output (logits): " + logits);
+        const probsTensor = tf.softmax(tf.tensor1d(logits));
+        const probs = probsTensor.dataSync();
+        
+        // Get top 3 predictions.
+        const topN = 3;
+        let predictions = [];
+        for (let i = 0; i < probs.length; i++) {
+          predictions.push({ index: i, probability: probs[i] });
+        }
+        // Sort predictions descending by probability.
+        predictions.sort((a, b) => b.probability - a.probability);
+        const topPredictions = predictions.slice(0, topN);
+        topPredictions.forEach(pred => {
+          pred.confidence = (pred.probability * 100).toFixed(2);
+          pred.label = classMapping[pred.index] || "Unknown";
+        });
+        logDebug("Top predictions: " + JSON.stringify(topPredictions));
+        
+        // Confidence threshold warning: if highest confidence < 50%.
+        const highestConfidence = parseFloat(topPredictions[0].confidence);
+        const warning = highestConfidence < 50 ? "Warning: Low confidence—please retake the image or consult an expert." : "";
+        
+        probsTensor.dispose();
+        
+        return {
+          topPredictions: topPredictions,
+          inferenceTime: inferenceTime,
+          warning: warning
+        };
+      } catch (err) {
+        console.error("Error during inference:", err);
+        logDebug("Error during inference: " + err);
+        alert("Error during inference: " + err);
+        return null;
+      }
+    }
+    
+    // Shutter button: capture image from camera, run inference, and show modal.
+    document.getElementById('shutter').addEventListener('click', async () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      video.pause();
+      const previewImg = document.getElementById('uploaded-image');
+      previewImg.src = canvas.toDataURL('image/jpeg');
+      previewImg.style.display = "block";
+      logDebug("Captured image from camera.");
+      const result = await runInference(canvas);
+      if (result) {
+        let predictionsHTML = "<ul>";
+        result.topPredictions.forEach(pred => {
+          predictionsHTML += `<li>${pred.label}: ${pred.confidence}%</li>`;
+        });
+        predictionsHTML += "</ul>";
+        let diagnosisMessage = predictionsHTML + `<p class="text-sm text-gray-700">Inference Time: ${result.inferenceTime} ms</p>`;
+        if (result.warning) {
+          diagnosisMessage += `<p class="text-red-600 text-sm font-bold">${result.warning}</p>`;
+        }
+        // Set the innerHTML of the diagnosis element.
+        document.getElementById('diagnosis').innerHTML = diagnosisMessage;
+        document.getElementById('modal').classList.remove("hidden");
+      }
+    });
+    
+    // Upload button: trigger hidden file input.
+    document.getElementById('upload').addEventListener('click', () => {
+      document.getElementById('hidden-upload').click();
+    });
+    
+    // When an image is uploaded, pause camera, display image, run inference, and show modal.
+    document.getElementById('hidden-upload').addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        video.pause();
+        const previewImg = document.getElementById('uploaded-image');
+        previewImg.src = reader.result;
+        previewImg.style.display = "block";
+        logDebug("Uploaded image loaded: " + file.name);
+        const img = new Image();
+        img.onload = async () => {
+          const result = await runInference(img);
+          if (result) {
+            let predictionsHTML = "<ul>";
+            result.topPredictions.forEach(pred => {
+              predictionsHTML += `<li>${pred.label}: ${pred.confidence}%</li>`;
+            });
+            predictionsHTML += "</ul>";
+            let diagnosisMessage = predictionsHTML + `<p class="text-sm text-gray-700">Inference Time: ${result.inferenceTime} ms</p>`;
+            if (result.warning) {
+              diagnosisMessage += `<p class="text-red-600 text-sm font-bold">${result.warning}</p>`;
+            }
+            document.getElementById('diagnosis').innerHTML = diagnosisMessage;
+            document.getElementById('modal').classList.remove("hidden");
+          }
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // Close modal and resume camera.
+    document.getElementById('close-modal').addEventListener('click', () => {
+      document.getElementById('modal').classList.add("hidden");
+      document.getElementById('uploaded-image').style.display = "none";
+      video.play();
+    });
+  </script>
+</body>
+</html>

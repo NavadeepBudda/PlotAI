@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>PlotAI - Sustainable Water Optimization &amp; Plant Disease Detection</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Alpine.js for Mobile Navigation -->
+  <script src="https://unpkg.com/alpinejs@3.10.3/dist/cdn.min.js" defer></script>
+  <!-- Google Fonts for Professional Look -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- AOS (Animate On Scroll) Library -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #0F172A; /* Deep Navy */
+    }
+    .hero-overlay {
+      background: rgba(15, 23, 42, 0.75);
+    }
+    /* Divider Styles */
+    .section-divider {
+      height: 4px;
+      background: linear-gradient(to right, #3B82F6, #60A5FA);
+      margin: 2rem auto;
+      width: 90%;
+    }
+    /* Decorative SVG wave for Mission section */
+    .wave {
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      line-height: 0;
+    }
+    .wave svg {
+      display: block;
+      width: 100%;
+      height: 80px;
+    }
+    /* Enhanced Card Hover */
+    .feature-card:hover {
+      transform: scale(1.03) rotate(0.5deg);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body class="text-white">
+  <!-- HEADER NAVIGATION -->
+  <header x-data="{ open: false }" class="fixed top-0 left-0 w-full bg-[#0F172A] z-50 shadow-md" data-aos="fade-down">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <div class="text-2xl sm:text-3xl font-bold text-white">PlotAI</div>
+      <!-- Desktop Navigation -->
+      <nav class="hidden md:flex space-x-6">
+        <a href="#hero" class="text-white hover:text-blue-400 transition">Home</a>
+        <a href="#mission" class="text-white hover:text-blue-400 transition">Mission</a>
+        <a href="#features" class="text-white hover:text-blue-400 transition">Features</a>
+        <a href="#founders" class="text-white hover:text-blue-400 transition">Founders</a>
+        <a href="#contact" class="text-white hover:text-blue-400 transition">Contact</a>
+        <a href="app.html" class="text-white hover:text-blue-400 transition">Water Optimization</a>
+        <a href="app2.html" class="text-white hover:text-blue-400 transition">Disease Detection</a>
+      </nav>
+      <!-- Mobile Hamburger -->
+      <div class="md:hidden">
+        <button @click="open = !open" class="focus:outline-none text-white">
+          <i :class="open ? 'fas fa-times text-2xl' : 'fas fa-bars text-2xl'"></i>
+        </button>
+      </div>
+    </div>
+    <!-- Mobile Navigation Menu -->
+    <div x-show="open" class="md:hidden bg-[#0F172A]" x-transition>
+      <ul class="px-4 py-4 space-y-3">
+        <li><a href="#hero" class="block text-white hover:text-blue-400 transition text-center" @click="open = false">Home</a></li>
+        <li><a href="#mission" class="block text-white hover:text-blue-400 transition text-center" @click="open = false">Mission</a></li>
+        <li><a href="#features" class="block text-white hover:text-blue-400 transition text-center" @click="open = false">Features</a></li>
+        <li><a href="#founders" class="block text-white hover:text-blue-400 transition text-center" @click="open = false">Founders</a></li>
+        <li><a href="#contact" class="block text-white hover:text-blue-400 transition text-center" @click="open = false">Contact</a></li>
+        <li><a href="app.html" class="block text-white hover:text-blue-400 transition text-center" @click="open = false">Water Optimization</a></li>
+        <li><a href="app2.html" class="block text-white hover:text-blue-400 transition text-center" @click="open = false">Disease Detection</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section id="hero" class="relative h-screen flex items-center justify-center pt-20 px-4" data-aos="fade-in">
+    <!-- Video Background (pointer-events disabled to prevent click interactions) -->
+    <video autoplay muted loop style="pointer-events: none;" class="absolute top-0 left-0 w-full h-full object-cover">
+      <source src="https://videos.pexels.com/video-files/3173440/3173440-uhd_2560_1440_30fps.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+    <!-- Dark Overlay -->
+    <div class="absolute inset-0 hero-overlay"></div>
+    <!-- Hero Content -->
+    <div class="relative z-10 text-center">
+      <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold mb-4">PlotAI</h1>
+      <p class="text-lg sm:text-xl md:text-2xl mb-6 max-w-lg mx-auto">
+        Increasing Agriculture Sustainability with Advanced Water Optimization and Early Plant Disease Detection
+      </p>
+      <!-- Call-to-action buttons -->
+      <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+        <a href="app.html" class="w-full sm:w-auto inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-lg" data-aos="fade-up">
+          Optimize Water Usage
+        </a>
+        <a href="app2.html" class="w-full sm:w-auto inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300 shadow-lg" data-aos="fade-up" data-aos-delay="100">
+          Detect Plant Disease
+        </a>
+      </div>
+      <div class="mt-8" data-aos="fade-up" data-aos-delay="300">
+        <a href="#mission" class="text-blue-400 animate-bounce">
+          <i class="fas fa-angle-down fa-2x"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Decorative Wave Divider (Mission Section) -->
+  <div class="relative">
+    <svg class="wave" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 80">
+      <path fill="#1E293B" fill-opacity="1" d="M0,32L48,48C96,64,192,96,288,101.3C384,107,480,85,576,74.7C672,64,768,64,864,80C960,96,1056,128,1152,122.7C1248,117,1344,75,1392,53.3L1440,32L1440,80L1392,80C1344,80,1248,80,1152,80C1056,80,960,80,864,80C768,80,672,80,576,80C480,80,384,80,288,80C192,80,96,80,48,80L0,80Z"></path>
+    </svg>
+  </div>
+
+  <!-- MISSION SECTION -->
+  <section id="mission" class="relative py-16 px-4 bg-[#1E293B] overflow-hidden" data-aos="fade-up">
+    <div class="max-w-4xl mx-auto relative z-10">
+      <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6">Our Mission</h2>
+      <p class="text-center text-gray-300 mb-10">
+        In response to significant crop losses caused by inefficient watering and plant diseases, PlotAI is revolutionizing sustainable agriculture. Our program combines water optimization with early disease detection to conserve water, lower costs, and protect crops. This boosts yields and, in turn, combats the growing issue of global hunger.
+      </p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="bg-[#0F172A] p-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300" data-aos="flip-left">
+          <div class="flex items-center mb-3">
+            <i class="fas fa-tint fa-2x text-blue-400 mr-3"></i>
+            <h3 class="text-xl font-semibold">Efficient Water Use</h3>
+          </div>
+          <p class="text-gray-300 text-sm">
+            Our system calculates the exact amount of irrigation needed for every plot, saving millions of gallons while optimizing growth.
+          </p>
+        </div>
+        <div class="bg-[#0F172A] p-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300" data-aos="flip-left" data-aos-delay="150">
+          <div class="flex items-center mb-3">
+            <i class="fas fa-microscope fa-2x text-blue-400 mr-3"></i>
+            <h3 class="text-xl font-semibold">Early Disease Detection</h3>
+          </div>
+          <p class="text-gray-300 text-sm">
+            Utilizing a TensorFlow-based deep learning model, we detect plant diseases at the earliest stage.
+          </p>
+        </div>
+        <div class="bg-[#0F172A] p-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300" data-aos="flip-left" data-aos-delay="300">
+          <div class="flex items-center mb-3">
+            <i class="fas fa-users fa-2x text-blue-400 mr-3"></i>
+            <h3 class="text-xl font-semibold">Empowering Farmers</h3>
+          </div>
+          <p class="text-gray-300 text-sm">
+            By combing sustainable water practices with early disease management, we help farmers secure their farms.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Divider -->
+  <div class="section-divider" data-aos="fade-left"></div>
+
+  <!-- FEATURES SECTION -->
+  <section id="features" class="py-16 px-4 bg-[#1E293B]" data-aos="fade-up">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-3xl sm:text-4xl font-bold text-center mb-10">Our Features</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Water Optimization Feature -->
+        <div class="feature-card bg-[#0F172A] p-6 rounded-lg shadow-lg border border-gray-700 transform transition duration-300" data-aos="zoom-in">
+          <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <i class="fas fa-water text-blue-400 fa-3x"></i>
+            <div>
+              <h3 class="text-xl font-semibold">Water Optimization</h3>
+              <p class="text-gray-300 mt-2 text-sm">
+                We calculate a water coefficient per plot using evapotranspiration rates and crop-specific needs. This makes sure that every field gets exactly the water it needs.
+              </p>
+            </div>
+          </div>
+          <div class="mt-4 text-center">
+            <a href="app.html" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300">
+              Try Water Optimization
+            </a>
+          </div>
+        </div>
+        <!-- Disease Detection Feature -->
+        <div class="feature-card bg-[#0F172A] p-6 rounded-lg shadow-lg border border-gray-700 transform transition duration-300" data-aos="zoom-in" data-aos-delay="150">
+          <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <i class="fas fa-notes-medical text-blue-400 fa-3x"></i>
+            <div>
+              <h3 class="text-xl font-semibold">Disease Detection</h3>
+              <p class="text-gray-300 mt-2 text-sm">
+                Our TensorFlow-powered model analyzes crop images to identify diseases at early stages, empowering farmers to protect their crops efficiently.
+              </p>
+            </div>
+          </div>
+          <div class="mt-4 text-center">
+            <a href="app2.html" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-300">
+              Try Disease Detection
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Divider -->
+  <div class="section-divider" data-aos="fade-right"></div>
+
+  <!-- FOUNDERS SECTION -->
+  <section id="founders" class="py-16 px-4 bg-[#1E293B]" data-aos="fade-up">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-3xl sm:text-4xl font-bold text-center mb-10">Meet the Founders</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+        <!-- Founder 1 -->
+        <div class="bg-[#0F172A] p-6 rounded-lg shadow-md border border-gray-700 transform hover:scale-105 transition duration-300" data-aos="zoom-in">
+          <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <img src="https://media.licdn.com/dms/image/v2/D4E03AQEdjwDCrHe7Tg/profile-displayphoto-shrink_400_400/B4EZRYZORnGYAo-/0/1736649794938?e=1749081600&v=beta&t=9NO3HHjtROXYros7hS3ETf8QRPgaPpLgI4zYMO316AA" alt="Founder Navadeep Budda" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-blue-400" />
+            <div class="text-center sm:text-left">
+              <h3 class="text-xl font-semibold">Navadeep Budda</h3>
+              <p class="text-gray-300 text-sm">
+                Navadeep Budda is a driven student at Lambert High School with a background in information technology. He combines his experience of programming with community service to create solutions that make a real impact.
+              </p>
+            </div>
+          </div>
+          <div class="mt-4 flex justify-center space-x-4">
+            <a href="https://www.instagram.com/navadeepbudda/" target="_blank" class="text-blue-400 hover:text-blue-300 text-xl">
+              <i class="fab fa-instagram"></i>
+            </a>
+            <a href="www.linkedin.com/in/navadeep-budda-a43157346" target="_blank" class="text-blue-400 hover:text-blue-300 text-xl">
+              <i class="fab fa-linkedin"></i>
+            </a>
+          </div>
+        </div>
+        <!-- Founder 2 -->
+        <div class="bg-[#0F172A] p-6 rounded-lg shadow-md border border-gray-700 transform hover:scale-105 transition duration-300" data-aos="zoom-in" data-aos-delay="150">
+          <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <img src="https://media.licdn.com/dms/image/v2/D4E03AQE6G24CAoS9iQ/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1685858943225?e=1749081600&v=beta&t=EKpHfGMblxeDyFVBCbAP0Na34JkQZ-iyYgM4oz947W8" alt="Founder Amrit Nallur" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-blue-400" />
+            <div class="text-center sm:text-left">
+              <h3 class="text-xl font-semibold">Amrit Nallur</h3>
+              <p class="text-gray-300 text-sm">
+                Amrit is a dedicated computer science student with a passion for solving problems using code. Constantly exploring new technologies, he uses his skills to build solutions and make change globally.
+              </p>
+            </div>
+          </div>
+          <div class="mt-4 flex justify-center space-x-4">
+            <a href="https://www.instagram.com" target="_blank" class="text-blue-400 hover:text-blue-300 text-xl">
+              <i class="fab fa-instagram"></i>
+            </a>
+            <a href="https://www.linkedin.com/in/amrit-nallur-183764279 target="_blank" class="text-blue-400 hover:text-blue-300 text-xl">
+              <i class="fab fa-linkedin"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Divider -->
+  <div class="section-divider" data-aos="fade-left"></div>
+
+  <!-- CONTACT SECTION -->
+  <section id="contact" class="py-16 px-4 bg-[#1E293B]" data-aos="fade-up">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-3xl sm:text-4xl font-bold text-center mb-8">Contact Us</h2>
+      <div class="bg-[#0F172A] p-6 rounded-lg shadow-md">
+        <h3 class="text-2xl font-semibold mb-4 text-center" data-aos="fade-down">Send us a message</h3>
+        <form action="mailto:navadeep.budda@gmail.com" method="post" enctype="text/plain" class="space-y-4" data-aos="fade-up" data-aos-delay="150">
+          <div>
+            <label for="name" class="block text-gray-300">Name</label>
+            <input type="text" id="name" name="name" placeholder="Your Name" class="w-full p-3 rounded-lg bg-[#1E293B] border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600" required />
+          </div>
+          <div>
+            <label for="email" class="block text-gray-300">Email</label>
+            <input type="email" id="email" name="email" placeholder="Your Email" class="w-full p-3 rounded-lg bg-[#1E293B] border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600" required />
+          </div>
+          <div>
+            <label for="message" class="block text-gray-300">Message</label>
+            <textarea id="message" name="message" rows="4" placeholder="Your Message" class="w-full p-3 rounded-lg bg-[#1E293B] border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600" required></textarea>
+          </div>
+          <div class="flex justify-center">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-md transition duration-300" data-aos="zoom-in">
+              Send Message
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="bg-[#0F172A] py-6" data-aos="fade-up">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <p class="text-gray-400 text-sm">© 2025 PlotAI. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- AOS Animation Script -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({
+      duration: 800,
+      once: true,
+    });
+  </script>
+</body>
+</html>

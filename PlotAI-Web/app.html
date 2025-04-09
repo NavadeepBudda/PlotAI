@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PlotAI Water Optimization</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Alpine.js via CDN -->
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- AOS Animation CSS -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <!-- Roboto Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <!-- Leaflet Draw CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  <style>
+    /* Global Styling */
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #F4F4F4;
+    }
+    /* x-cloak to hide elements until Alpine loads */
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body x-data="plotAIApp()" class="flex flex-col min-h-screen">
+  <!-- Header -->
+  <header class="bg-white shadow-md" data-aos="fade-down">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="text-2xl font-bold text-gray-900">PlotAI</div>
+      <div x-data="{ open: false }" class="relative">
+        <button @click="open = !open" class="focus:outline-none">
+          <!-- Hamburger Icon -->
+          <svg class="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <div x-show="open" x-cloak @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20" data-aos="fade-in">
+          <a href="#" @click.prevent="resetApp(); page = 1; open = false" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Field Address</a>
+          <a href="index.html" @click.prevent="resetApp(); open = false" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Landing Page</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content (centered vertically) -->
+  <main class="flex-grow flex items-center justify-center" data-aos="fade-up">
+    <div class="w-full max-w-md">
+      <!-- White Card Container for Each Step -->
+      <div class="bg-white rounded-2xl shadow-md p-6 space-y-6" data-aos="zoom-in">
+        <!-- Page 1: Field Address (Map-based area selection) -->
+        <div x-show="page === 1" x-transition>
+          <h2 class="text-2xl font-bold text-gray-900 text-center">Enter Field Address</h2>
+          <p class="text-sm text-gray-500 text-center">We'll use this address to locate your field.</p>
+          <input
+            type="text"
+            placeholder="e.g. 123 Main St, Atlanta, GA"
+            x-model="fieldAddress"
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 mt-4 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+          />
+          <div class="flex justify-center mt-4">
+            <button
+              class="bg-indigo-600 text-white py-2 px-6 rounded-full hover:bg-indigo-700 transition text-sm font-medium"
+              @click="openMapModal()"
+              data-aos="fade-right"
+            >
+              Open Map
+            </button>
+          </div>
+          <div class="flex justify-center mt-6">
+            <button
+              class="bg-indigo-600 text-white py-2 px-6 rounded-full hover:bg-indigo-700 transition text-sm font-medium"
+              @click="goToNextPage()"
+              data-aos="fade-left"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+
+        <!-- Page 2: Crop Details -->
+        <div x-show="page === 2" x-transition>
+          <h2 class="text-2xl font-bold text-gray-900 text-center">Crop Details</h2>
+          <p class="text-sm text-gray-500 text-center">Select your crop and enter its coefficient.</p>
+          <div class="mt-4">
+            <label class="block text-sm text-gray-700 mb-1">Select Crop:</label>
+            <select 
+              x-model="selectedCrop" 
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            >
+              <option value="custom">Custom</option>
+              <option value="Corn">Corn</option>
+              <option value="Wheat">Wheat</option>
+              <option value="Soybean">Soybean</option>
+              <option value="Rice">Rice</option>
+              <option value="Potato">Potato</option>
+              <option value="Tomato">Tomato</option>
+              <option value="Cotton">Cotton</option>
+              <option value="Barley">Barley</option>
+              <option value="Sorghum">Sorghum</option>
+            </select>
+          </div>
+          <template x-if="selectedCrop === 'custom'">
+            <div class="mt-4">
+              <label class="block text-sm text-gray-700 mb-1">Crop Coefficient (Kc):</label>
+              <input
+                type="number"
+                step="0.01"
+                x-model.number="customCoefficient"
+                placeholder="e.g. 1.25"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+              />
+            </div>
+          </template>
+          <div class="flex justify-between mt-6">
+            <button
+              class="bg-gray-400 text-white py-2 px-6 rounded-full hover:bg-gray-500 transition text-sm font-medium"
+              @click="goToPreviousPage()"
+              data-aos="fade-right"
+            >
+              Back
+            </button>
+            <button
+              class="bg-indigo-600 text-white py-2 px-6 rounded-full hover:bg-indigo-700 transition text-sm font-medium"
+              @click="goToNextPage()"
+              data-aos="fade-left"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+
+        <!-- Page 3: Irrigation Frequency -->
+        <div x-show="page === 3" x-transition>
+          <h2 class="text-2xl font-bold text-gray-900 text-center">Irrigation Frequency</h2>
+          <p class="text-sm text-gray-500 text-center">How often do you plan to irrigate?</p>
+          <div class="mt-4 space-y-3">
+            <label class="flex items-center space-x-2" data-aos="fade-up">
+              <input type="radio" name="frequency" value="Daily" class="form-radio h-4 w-4 text-indigo-600" x-model="irrigationFreq" />
+              <span class="text-sm text-gray-700">Daily</span>
+            </label>
+            <label class="flex items-center space-x-2" data-aos="fade-up" data-aos-delay="100">
+              <input type="radio" name="frequency" value="Every 2 Days" class="form-radio h-4 w-4 text-indigo-600" x-model="irrigationFreq" />
+              <span class="text-sm text-gray-700">Every 2 Days</span>
+            </label>
+            <label class="flex items-center space-x-2" data-aos="fade-up" data-aos-delay="200">
+              <input type="radio" name="frequency" value="Weekly" class="form-radio h-4 w-4 text-indigo-600" x-model="irrigationFreq" />
+              <span class="text-sm text-gray-700">Weekly</span>
+            </label>
+          </div>
+          <div class="flex justify-between mt-6">
+            <button
+              class="bg-gray-400 text-white py-2 px-6 rounded-full hover:bg-gray-500 transition text-sm font-medium"
+              @click="goToPreviousPage()"
+              data-aos="fade-right"
+            >
+              Back
+            </button>
+            <button
+              class="bg-indigo-600 text-white py-2 px-6 rounded-full hover:bg-indigo-700 transition text-sm font-medium"
+              @click="goToNextPage()"
+              data-aos="fade-left"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+
+        <!-- Page 4: Results -->
+        <div x-show="page === 4" x-transition>
+          <h2 class="text-2xl font-bold text-gray-900 text-center mb-4" data-aos="fade-down">Results</h2>
+          <!-- Results Card -->
+          <div class="bg-white rounded-xl shadow-md p-6 space-y-6" data-aos="zoom-in">
+            <!-- Field Title -->
+            <div class="text-center">
+              <h2 class="text-xl font-bold text-gray-900" x-text="selectedCrop === 'custom' ? 'Custom Field' : (selectedCrop + ' Field')"></h2>
+            </div>
+            <!-- Water Optimization Data -->
+            <div class="space-y-2" data-aos="fade-up">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-700">Total Field Area:</span>
+                <span class="text-sm font-bold text-gray-900" x-text="area.toFixed(2) + ' m²'"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-700">Evapotranspiration (ET0):</span>
+                <span class="text-sm font-bold text-gray-900" x-text="et > 0 ? et.toFixed(2) + ' mm/day' : '-'"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-700">Crop Coefficient (Kc):</span>
+                <span class="text-sm font-bold text-gray-900" x-text="selectedCrop === 'custom' ? customCoefficient : cropCoefficients[selectedCrop]"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-700">Irrigation Frequency:</span>
+                <span class="text-sm font-bold text-gray-900" x-text="irrigationFreq"></span>
+              </div>
+              <div class="flex justify-between items-center border-t pt-2">
+                <span class="text-sm text-gray-700">Total Water Required:</span>
+                <span class="text-sm font-bold text-gray-900" x-text="waterLiters.toFixed(2) + ' liters per irrigation event'"></span>
+              </div>
+            </div>
+            <!-- Advanced Details (Collapsible) -->
+            <div x-data="{ open: false }" class="border-t pt-4" data-aos="fade-up">
+              <button class="w-full text-sm text-indigo-600 font-semibold text-center" @click="open = !open">
+                <span x-text="open ? 'Hide Advanced Details' : 'Show Advanced Details'"></span>
+              </button>
+              <div x-show="open" class="mt-4 text-sm text-gray-700">
+                <p>Advanced Water Optimization Data:</p>
+                <ul class="list-disc list-inside mt-2 space-y-1">
+                  <li>Field Area: <strong x-text="area.toFixed(2) + ' m²'"></strong></li>
+                  <li>ET0: <strong x-text="et.toFixed(2) + ' mm/day'"></strong></li>
+                  <li>Crop Coefficient: <strong x-text="selectedCrop === 'custom' ? customCoefficient : cropCoefficients[selectedCrop]"></strong></li>
+                  <li>Irrigation Frequency: <strong x-text="irrigationFreq"></strong></li>
+                  <li>Total Water: <strong x-text="waterLiters.toFixed(2) + ' liters per event'"></strong></li>
+                </ul>
+              </div>
+            </div>
+            <!-- Add Note Section -->
+            <button
+              class="w-full bg-black text-white py-2 rounded-full text-sm font-medium transition hover:opacity-90"
+              @click="addNote = !addNote"
+              data-aos="fade-up"
+            >
+              + Add Note
+            </button>
+            <div x-show="addNote" class="w-full" data-aos="fade-up">
+              <textarea
+                class="w-full border border-gray-300 rounded-lg p-2 text-sm"
+                placeholder="Enter your note here..."
+                x-model="noteText"
+              ></textarea>
+              <button
+                class="w-full bg-blue-500 text-white py-2 rounded-full mt-2 text-sm font-medium transition hover:bg-blue-600"
+                @click="saveNote()"
+                data-aos="fade-up"
+              >
+                Save Note
+              </button>
+            </div>
+            <!-- Display Saved Notes -->
+            <div x-show="notes.length > 0" class="border-t pt-4" data-aos="fade-up">
+              <h3 class="text-sm font-bold text-gray-900 mb-2">Notes</h3>
+              <ul class="list-disc list-inside">
+                <template x-for="(note, index) in notes" :key="index">
+                  <li class="flex justify-between items-center">
+                    <span x-text="note.text"></span>
+                    <button @click="deleteNote(index)" class="text-red-500 text-xs ml-2">Delete</button>
+                  </li>
+                </template>
+              </ul>
+            </div>
+          </div>
+          <!-- Navigation Buttons (No Download button) -->
+          <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4 mt-4" data-aos="fade-up">
+            <button
+              class="w-full md:w-auto bg-gray-400 text-white py-2 px-4 rounded-full hover:bg-gray-500 transition text-sm font-medium"
+              @click="goToPreviousPage()"
+            >
+              Back
+            </button>
+            <button
+              class="w-full md:w-auto bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 transition text-sm font-medium"
+              @click="resetApp()"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Map Modal (Appears on Page 1) -->
+    <div 
+      x-show="showMapModal" 
+      x-cloak
+      class="fixed inset-0 flex items-center justify-center bg-black/40 z-50" 
+      x-transition
+      data-aos="zoom-in"
+    >
+      <div class="bg-white rounded-xl shadow-lg w-full max-w-xl p-6 relative">
+        <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Draw Your Field Boundary</h3>
+        <p class="text-xs text-gray-500 text-center mb-4">Use the drawing tools to mark your area.</p>
+        <!-- Map Container -->
+        <div id="map" class="border border-gray-300 rounded-lg w-full h-64"></div>
+        <div class="flex justify-end mt-4 space-x-4">
+          <button 
+            class="bg-indigo-600 text-white py-2 px-4 rounded-full text-sm font-medium hover:bg-indigo-700 transition"
+            @click="confirmAreaSelection()"
+            data-aos="fade-right"
+          >
+            Confirm
+          </button>
+          <button 
+            class="bg-gray-400 text-white py-2 px-4 rounded-full text-sm font-medium hover:bg-gray-500 transition"
+            @click="closeMapModal()"
+            data-aos="fade-left"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white shadow-md" data-aos="fade-up">
+    <div class="container mx-auto px-4 py-3 text-center text-xs text-gray-900">
+      &copy; 2023 PlotAI. All rights reserved.
+    </div>
+  </footer>
+
+  <!-- Alpine.js Logic -->
+  <script>
+    function plotAIApp() {
+      return {
+        // UI State
+        page: 1,
+        showMapModal: false,
+        fieldAddress: '',
+        selectedCrop: 'custom',
+        customCoefficient: 0,
+        irrigationFreq: '',
+        addNote: false,
+        noteText: '',
+        notes: [],
+        // Computed/Demo Values
+        et: 5, // default ET value; will be updated via Open‑Meteo API
+        area: 0,
+        waterLiters: 0,
+        // Hardcoded crop coefficients
+        cropCoefficients: {
+          'Corn': 1.2,
+          'Wheat': 0.8,
+          'Soybean': 0.9,
+          'Rice': 1.1,
+          'Potato': 0.75,
+          'Tomato': 1.05,
+          'Cotton': 1.3,
+          'Barley': 0.85,
+          'Sorghum': 1.15
+        },
+        // Map and drawing objects
+        map: null,
+        drawnItems: null,
+        currentPolygon: null,
+        // API key for Weatherbit – retained but no longer used
+        WEATHERBIT_API_KEY: "b362f2f361fe446cb5bbfadfa499a383",
+        
+        // Navigation Functions
+        goToNextPage() {
+          if (this.page === 1 && !this.fieldAddress.trim()) {
+            alert('Please enter a field address.');
+            return;
+          }
+          if (this.page === 2 && this.selectedCrop === 'custom' && (!this.customCoefficient || this.customCoefficient <= 0)) {
+            alert('Please enter a valid crop coefficient.');
+            return;
+          }
+          if (this.page === 3 && !this.irrigationFreq) {
+            alert('Please select an irrigation frequency.');
+            return;
+          }
+          // Calculate water requirement when leaving the irrigation frequency page
+          if (this.page === 3) {
+            let kc = this.selectedCrop === 'custom' ? this.customCoefficient : (this.cropCoefficients[this.selectedCrop] || 1);
+            let freqMultiplier = this.irrigationFreq === 'Daily' ? 1 : (this.irrigationFreq === 'Every 2 Days' ? 2 : (this.irrigationFreq === 'Weekly' ? 7 : 1));
+            this.waterLiters = this.area * this.et * kc * freqMultiplier;
+          }
+          this.page++;
+        },
+        goToPreviousPage() {
+          if (this.page > 1) this.page--;
+        },
+        resetApp() {
+          this.page = 1;
+          this.fieldAddress = '';
+          this.selectedCrop = 'custom';
+          this.customCoefficient = 0;
+          this.irrigationFreq = '';
+          this.addNote = false;
+          this.noteText = '';
+          this.notes = [];
+          this.area = 0;
+          this.waterLiters = 0;
+          this.et = 5;
+          // Remove map instance if it exists
+          if (this.map) {
+            this.map.remove();
+            this.map = null;
+          }
+        },
+        
+        // Map Modal Functions
+        openMapModal() {
+          if (!this.fieldAddress.trim()) {
+            alert('Please enter an address first.');
+            return;
+          }
+          this.showMapModal = true;
+          this.initializeMap();
+        },
+        initializeMap() {
+          // Geocode the field address using Nominatim
+          fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(this.fieldAddress)}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lon = parseFloat(data[0].lon);
+                // Initialize map only once
+                if (!this.map) {
+                  this.map = L.map('map').setView([lat, lon], 15);
+                  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                  }).addTo(this.map);
+                  // Initialize feature group to store drawn layers
+                  this.drawnItems = new L.FeatureGroup();
+                  this.map.addLayer(this.drawnItems);
+                  // Initialize the draw control
+                  var drawControl = new L.Control.Draw({
+                    draw: {
+                      polyline: false,
+                      rectangle: false,
+                      circle: false,
+                      marker: false,
+                      circlemarker: false,
+                      polygon: {
+                        allowIntersection: false,
+                        showArea: true,
+                        drawError: {
+                          color: '#e1e100',
+                          message: '<strong>Error:</strong> you cannot draw that!'
+                        },
+                        shapeOptions: {
+                          color: '#bada55'
+                        }
+                      }
+                    },
+                    edit: {
+                      featureGroup: this.drawnItems,
+                      remove: true
+                    }
+                  });
+                  this.map.addControl(drawControl);
+                  // Listen for the creation of a new polygon
+                  this.map.on(L.Draw.Event.CREATED, (e) => {
+                    // Remove any previously drawn polygon
+                    if (this.currentPolygon) {
+                      this.drawnItems.removeLayer(this.currentPolygon);
+                    }
+                    this.currentPolygon = e.layer;
+                    this.drawnItems.addLayer(e.layer);
+                  });
+                } else {
+                  this.map.setView([lat, lon], 15);
+                }
+              } else {
+                alert('Address not found. Please enter a valid address.');
+                this.showMapModal = false;
+              }
+            })
+            .catch(error => {
+              console.error('Error geocoding address:', error);
+              alert('Error retrieving location. Please try again.');
+              this.showMapModal = false;
+            });
+        },
+        closeMapModal() {
+          this.showMapModal = false;
+        },
+        confirmAreaSelection() {
+          if (!this.currentPolygon) {
+            alert('Please draw your field boundary on the map.');
+            return;
+          }
+          // Get the polygon’s latlngs and convert to a GeoJSON polygon for area calculation using Turf.js
+          let latlngs = this.currentPolygon.getLatLngs()[0];
+          let coordinates = latlngs.map(latlng => [latlng.lng, latlng.lat]);
+          if (coordinates.length > 0 && (coordinates[0][0] !== coordinates[coordinates.length-1][0] || coordinates[0][1] !== coordinates[coordinates.length-1][1])) {
+            coordinates.push(coordinates[0]); // Close the polygon if not closed
+          }
+          let geojson = {
+            "type": "Polygon",
+            "coordinates": [coordinates]
+          };
+          let calculatedArea = turf.area(geojson); // area in square meters
+          this.area = calculatedArea;
+          // Compute centroid to use for ET API call
+          let centroid = turf.centroid(geojson);
+          let centroidCoords = centroid.geometry.coordinates;
+          // Prepare date string (using yesterday’s date for historical data)
+          let today = new Date();
+          today.setDate(today.getDate() - 1);
+          let dateStr = today.toISOString().split('T')[0];
+          // Build the Open‑Meteo API URL for daily ET₀ (FAO) data
+          let weatherURL = `https://api.open-meteo.com/v1/forecast?latitude=${centroidCoords[1]}&longitude=${centroidCoords[0]}&daily=et0_fao_evapotranspiration&timezone=UTC&start_date=${dateStr}&end_date=${dateStr}`;
+          fetch(weatherURL)
+            .then(response => response.json())
+            .then(data => {
+              if (data && data.daily && data.daily.et0_fao_evapotranspiration && data.daily.et0_fao_evapotranspiration.length > 0) {
+                // Use the ET₀ value returned from Open‑Meteo (mm/day)
+                this.et = data.daily.et0_fao_evapotranspiration[0];
+              } else {
+                alert('Unable to retrieve ET data. Using default value.');
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching ET data:', error);
+              alert('Error fetching ET data. Using default value.');
+            });
+          alert('Area confirmed: ' + this.area.toFixed(2) + ' m²');
+          this.closeMapModal();
+        },
+        // Notes System Functions
+        saveNote() {
+          if (this.noteText.trim() !== "") {
+            this.notes.push({ text: this.noteText, timestamp: new Date() });
+            this.noteText = "";
+            this.addNote = false;
+            alert("Note saved.");
+          } else {
+            alert("Please enter a note before saving.");
+          }
+        },
+        deleteNote(index) {
+          this.notes.splice(index, 1);
+        }
+      };
+    }
+  </script>
+  <!-- Include Leaflet JS, Leaflet Draw JS, and Turf.js -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+  <!-- AOS Animation Script -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({
+      duration: 800,
+      once: true,
+    });
+  </script>
+</body>
+</html>
